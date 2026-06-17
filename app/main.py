@@ -20,6 +20,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 from telethon import TelegramClient
@@ -33,7 +34,9 @@ from . import billing, platform_bot, tg_connect
 from .auth import authenticate, create_user, email_taken
 from .db import get_db, init_db
 from .models import Lead, MonitoredChat, TgAccount, User, utcnow
+from src.classifier import Classifier
 from src.llm import LLM
+from src.prefilter import PreFilter
 
 BASE = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE / "templates"))
@@ -386,6 +389,77 @@ def chat_toggle(chat_id: int, request: Request, db: Session = Depends(get_db)):
         chat.active = not chat.active
         db.commit()
     return RedirectResponse("/app/chats", status_code=303)
+
+
+@app.post("/app/chats/scan-history")
+async def scan_history(request: Request, limit: int = Form(300), db: Session = Depends(get_db)):
+    """Разовый проход по истории активных чатов: фильтр → ИИ → лиды. С лимитами."""
+    user = get_user(request, db)
+    if not user:
+        return need_login()
+    keywords = user.get_keywords()
+    if not keywords:
+        return RedirectResponse("/app/chats?msg=Сначала задайте ключевые слова (Настройка поиска)", status_code=303)
+    active = db.query(MonitoredChat).filter(
+        MonitoredChat.user_id == user.id, MonitoredChat.active.is_(True)).all()
+    if not active:
+        return RedirectResponse("/app/chats?msg=Включите хотя бы один чат", status_code=303)
+    llm = _llm_or_none()
+    if not llm:
+        return RedirectResponse("/app/chats?msg=Нужен LLM-ключ в .env", status_code=303)
+    client = await _open_user_client(user)
+    if not client:
+        return RedirectResponse("/app/chats?msg=Сначала подключите Telegram-аккаунт", status_code=303)
+
+    limit = max(50, min(int(limit), 1000))
+    prefilter = PreFilter(keywords, user.get_stop_words())
+    classifier = Classifier(llm, user.business_context)
+    AI_CAP = 30  # потолок ИИ-оценок за один скан — бережём бесплатный лимит OpenRouter
+    found, ai_calls = 0, 0
+    try:
+        for chat in active:
+            if ai_calls >= AI_CAP:
+                break
+            try:
+                async for msg in client.iter_messages(chat.chat_id, limit=limit):
+                    text = msg.message or ""
+                    if not text.strip():
+                        continue
+                    kw = prefilter.match(text)
+                    if not kw:
+                        continue
+                    if ai_calls >= AI_CAP:
+                        break
+                    result = await classifier.classify(text, chat.title)
+                    ai_calls += 1
+                    sender = None
+                    try:
+                        sender = await msg.get_sender()
+                    except Exception:  # noqa: BLE001
+                        pass
+                    uname = getattr(sender, "username", None)
+                    sname = " ".join(p for p in [getattr(sender, "first_name", None),
+                                                 getattr(sender, "last_name", None)] if p) or (uname or "—")
+                    link = (f"https://t.me/{chat.username}/{msg.id}" if chat.username
+                            else (f"https://t.me/{uname}" if uname else None))
+                    try:
+                        db.add(Lead(user_id=user.id, created_at=utcnow(), chat_id=chat.chat_id,
+                                    chat_title=chat.title, message_id=msg.id, sender_id=msg.sender_id,
+                                    sender_name=sname, username=uname, text=text, keyword=kw,
+                                    classification=result.classification, score=result.score,
+                                    intent=result.intent, reply=result.reply, status="new", link=link))
+                        db.commit()
+                        found += 1
+                    except IntegrityError:
+                        db.rollback()  # уже есть такой лид
+                    await asyncio.sleep(0.3)
+            except Exception:  # noqa: BLE001
+                continue
+    finally:
+        await client.disconnect()
+    return RedirectResponse(
+        f"/app/chats?msg=Скан истории готов: добавлено {found} лидов (ИИ-оценок {ai_calls}/{AI_CAP})",
+        status_code=303)
 
 
 @app.post("/app/chats/{chat_id}/similar")

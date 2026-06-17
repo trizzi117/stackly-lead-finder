@@ -20,9 +20,22 @@
     <div class="gcard"><div class="e">④</div><h3>Найти похожие</h3><p>ИИ подберёт связанные публичные группы и каналы, которых ещё нет в списке, — с оценкой релевантности. Быстрый способ расширить охват. Тариф Про+.</p></div>
   </div>
 
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap">
     <form method="post" action="/app/chats/sync"><button class="btn">↻ Синхронизировать чаты</button></form>
     <span class="muted">Активно: <b>{{ active_n }}</b> / {{ limits.chats }} слотов (тариф {{ plan_title(sub.plan) if sub else '—' }})</span>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span>🕓 <b>Найти лиды в истории</b></span>
+    <span class="muted" style="font-size:13px">прогнать прошлые сообщения активных чатов через фильтр и ИИ:</span>
+    <form method="post" action="/app/chats/scan-history" style="display:flex;gap:8px;align-items:center;margin-left:auto">
+      <select name="limit" style="width:auto;padding:8px 10px">
+        <option value="100">последние 100 сообщений</option>
+        <option value="300" selected>последние 300</option>
+        <option value="1000">последние 1000 (глубже)</option>
+      </select>
+      <button class="btn ghost" onclick="this.innerText='Сканирую… (до минуты)'">Сканировать</button>
+    </form>
   </div>
 
   {% if not chats %}
