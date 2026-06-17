@@ -1,20 +1,35 @@
 {% extends "app_base.html" %}
-{% block title %}Ключевые слова{% endblock %}
-{% block page_title %}Ключевые слова{% endblock %}
+{% block title %}Настройка поиска{% endblock %}
+{% block page_title %}Настройка поиска{% endblock %}
 {% block app_content %}
 {% if saved %}<div class="ok">Сохранено</div>{% endif %}
-<p class="muted" style="margin-bottom:18px">Ключевые слова — язык покупателя («ищу», «нужен», «посоветуйте кто»). Стоп-слова отсекают шум (вакансии, реклама, обучение). По одной фразе на строку.</p>
 <form method="post" action="/app/keywords">
+
+  <div class="card" style="margin-bottom:16px">
+    <label style="margin-top:0">🧠 Описание бизнеса (контекст для ИИ)</label>
+    <p class="muted" style="font-size:13px;margin-bottom:8px">Кто вы и что продаёте. От этого зависит точность оценки лидов и тон ответов.</p>
+    <textarea name="business_context" style="min-height:90px" placeholder="Внедряю автоматизацию (CRM, боты, сайты с заявками) для малого бизнеса в РФ.">{{ business_context or '' }}</textarea>
+  </div>
+
+  <p class="muted" style="margin-bottom:12px">Ключевые слова — язык покупателя («ищу», «нужен», «посоветуйте кто»). Стоп-слова отсекают шум. По одной фразе на строку.</p>
   <div class="grid2" style="margin-top:0">
     <div class="card">
       <label style="margin-top:0">🔑 Ключевые слова</label>
-      <textarea name="keywords" style="min-height:280px" placeholder="нужен бот&#10;ищу разработчика&#10;нужна автоматизация">{{ keywords }}</textarea>
+      <textarea name="keywords" style="min-height:240px" placeholder="нужен бот&#10;ищу разработчика&#10;нужна автоматизация">{{ keywords }}</textarea>
     </div>
     <div class="card">
       <label style="margin-top:0">🚫 Стоп-слова</label>
-      <textarea name="stop_words" style="min-height:280px" placeholder="вакансия&#10;резюме&#10;бесплатно&#10;курс">{{ stop_words }}</textarea>
+      <textarea name="stop_words" style="min-height:240px" placeholder="вакансия&#10;резюме&#10;бесплатно&#10;курс">{{ stop_words }}</textarea>
     </div>
   </div>
+
+  <div class="card" style="margin-top:16px">
+    <label style="margin-top:0">🔥 Порог «горячего» лида для пуша: <b id="thv">{{ hot_threshold }}</b></label>
+    <p class="muted" style="font-size:13px;margin-bottom:8px">Лиды со score выше порога сразу присылаются в Telegram-бот.</p>
+    <input type="range" name="hot_threshold" min="0" max="100" value="{{ hot_threshold }}"
+           oninput="document.getElementById('thv').textContent=this.value" style="width:100%">
+  </div>
+
   <button class="btn" style="margin-top:16px">Сохранить</button>
 </form>
 {% endblock %}

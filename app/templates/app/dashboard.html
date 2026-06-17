@@ -19,9 +19,22 @@
 
 {% if not leads %}
   <div class="empty">
-    <h3>Пока нет лидов</h3>
-    <p class="muted">Подключите Telegram-аккаунт, выберите чаты и задайте ключевые слова — лиды появятся здесь автоматически.</p>
-    <p style="margin-top:14px"><a class="btn" href="/app/connect">Подключить Telegram</a></p>
+    {% if not acc_connected %}
+      <h3>Шаг 1 — подключите Telegram</h3>
+      <p class="muted">Лиды появятся автоматически после подключения аккаунта и настройки чатов и слов.</p>
+      <p style="margin-top:14px"><a class="btn" href="/app/connect">Подключить Telegram</a></p>
+    {% elif active_chats == 0 %}
+      <h3>Аккаунт подключён ✓ — теперь включите чаты</h3>
+      <p class="muted">Синхронизируйте свои чаты и включите те, что хотите мониторить.</p>
+      <p style="margin-top:14px"><a class="btn" href="/app/chats">Перейти к чатам</a></p>
+    {% elif not has_keywords %}
+      <h3>Аккаунт ✓, чаты ✓ — задайте ключевые слова</h3>
+      <p class="muted">Осталось задать фразы, по которым ловить лидов — например «ищу бота», «нужна автоматизация».</p>
+      <p style="margin-top:14px"><a class="btn" href="/app/keywords">Задать ключевые слова</a></p>
+    {% else %}
+      <h3>Мониторинг идёт ✓</h3>
+      <p class="muted">Всё настроено: аккаунт, {{ active_chats }} активных чат(ов) и ключевые слова. Лиды появятся, как только в этих чатах кто-то напишет под твои ключевые слова — это может занять от пары минут до нескольких часов.</p>
+    {% endif %}
   </div>
 {% else %}
   {% for l in leads %}

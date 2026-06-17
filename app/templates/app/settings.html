@@ -2,25 +2,14 @@
 {% block title %}Настройки{% endblock %}
 {% block page_title %}Настройки{% endblock %}
 {% block app_content %}
-{% if saved %}<div class="ok">Сохранено</div>{% endif %}
-<form method="post" action="/app/settings">
-  <div class="card" style="margin-bottom:16px">
-    <label style="margin-top:0">Описание бизнеса (контекст для AI)</label>
-    <p class="muted" style="font-size:13px;margin-bottom:8px">Кто вы и что продаёте. От этого зависит точность классификации и тон ответов.</p>
-    <textarea name="business_context" placeholder="Я внедряю автоматизацию (n8n, CRM, Telegram-боты) для малого бизнеса в РФ.">{{ user.business_context or '' }}</textarea>
-  </div>
-  <div class="card" style="margin-bottom:16px">
-    <label style="margin-top:0">Порог «горячего» лида для пуша: <b id="thv">{{ user.hot_threshold }}</b></label>
-    <p class="muted" style="font-size:13px;margin-bottom:8px">Лиды со score выше порога присылаются в бот сразу.</p>
-    <input type="range" name="hot_threshold" min="0" max="100" value="{{ user.hot_threshold }}"
-           oninput="document.getElementById('thv').textContent=this.value" style="width:100%">
-  </div>
-  <button class="btn">Сохранить</button>
-</form>
-
-<div class="card" style="margin-top:20px">
-  <h3 style="font-size:15px;margin-bottom:8px">Аккаунт</h3>
+<div class="card">
+  <h3 style="font-size:15px;margin-bottom:10px">Аккаунт</h3>
   <p class="muted">Email: <b>{{ user.email }}</b></p>
-  <p style="margin-top:10px"><a class="btn ghost sm" href="/logout">Выйти</a></p>
+  <p class="muted" style="margin-top:6px">Тариф: <b>{{ plan_title(sub.plan) if sub else '—' }}</b></p>
+  <p style="margin-top:14px">
+    <a class="btn ghost sm" href="/app/billing">Управление тарифом</a>
+    <a class="btn ghost sm" href="/logout">Выйти</a>
+  </p>
 </div>
+<p class="muted" style="margin-top:14px;font-size:13px">Описание бизнеса, ключевые слова и порог «горячего» лида переехали в раздел <a href="/app/keywords" style="color:var(--brand)">«Настройка поиска»</a>.</p>
 {% endblock %}

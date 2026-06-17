@@ -185,8 +185,13 @@ def dashboard(request: Request, classification: str = "all", status: str = "all"
     if status != "all":
         q = q.filter(Lead.status == status)
     leads = q.order_by(Lead.created_at.desc()).limit(200).all()
+    acc_connected = bool(user.tg_account and user.tg_account.status == "connected")
+    active_chats = db.query(MonitoredChat).filter(
+        MonitoredChat.user_id == user.id, MonitoredChat.active.is_(True)).count()
+    has_keywords = len(user.get_keywords()) > 0
     return render(request, "app/dashboard.html", user, leads=leads, stats=compute_stats(db, user.id),
-                  cur_class=classification, cur_status=status, active="dashboard")
+                  cur_class=classification, cur_status=status, active="dashboard",
+                  acc_connected=acc_connected, active_chats=active_chats, has_keywords=has_keywords)
 
 @app.get("/app/stats", response_class=HTMLResponse)
 def stats_page(request: Request, db: Session = Depends(get_db)):
@@ -245,16 +250,20 @@ def keywords_page(request: Request, db: Session = Depends(get_db)):
         return need_login()
     return render(request, "app/keywords.html", user, active="keywords",
                   keywords="\n".join(user.get_keywords()), stop_words="\n".join(user.get_stop_words()),
+                  business_context=user.business_context, hot_threshold=user.hot_threshold,
                   saved=request.query_params.get("saved"))
 
 @app.post("/app/keywords")
 def keywords_save(request: Request, keywords: str = Form(""), stop_words: str = Form(""),
+                  business_context: str = Form(""), hot_threshold: int = Form(70),
                   db: Session = Depends(get_db)):
     user = get_user(request, db)
     if not user:
         return need_login()
     user.set_keywords([k.strip() for k in keywords.splitlines() if k.strip()])
     user.set_stop_words([s.strip() for s in stop_words.splitlines() if s.strip()])
+    user.business_context = business_context.strip()
+    user.hot_threshold = max(0, min(100, hot_threshold))
     db.commit()
     return RedirectResponse("/app/keywords?saved=1", status_code=303)
 

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 DATA.mkdir(exist_ok=True)
 
-DB_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA / 'saas.db'}")
+DB_URL = os.getenv("DATABASE_URL", "").strip() or f"sqlite:///{DATA / 'saas.db'}"
 _connect_args = {"check_same_thread": False} if DB_URL.startswith("sqlite") else {}
 
 engine = create_engine(DB_URL, connect_args=_connect_args, future=True)
