@@ -418,6 +418,8 @@ async def scan_history(request: Request, limit: int = Form(300), db: Session = D
     found, ai_calls = 0, 0
     try:
         for chat in active:
+            if chat.is_channel:  # односторонний канал — сообщений от людей нет, пропускаем
+                continue
             if ai_calls >= AI_CAP:
                 break
             try:
@@ -525,7 +527,10 @@ async def _search_tg(client, queries: list[str], limit: int = 20) -> list[dict]:
         except Exception:  # noqa: BLE001
             continue
         for ch in res.chats:
-            if not isinstance(ch, (Channel, Chat)):
+            # только ГРУППЫ/беседы, где пишут люди: супергруппа (megagroup) или старая группа.
+            # односторонние broadcast-каналы пропускаем — лидов там нет.
+            is_group = isinstance(ch, Chat) or (isinstance(ch, Channel) and getattr(ch, "megagroup", False))
+            if not is_group:
                 continue
             cid = get_peer_id(ch)
             if cid in seen:
