@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Stackly Lead Finder — находите клиентов в Telegram на автопилоте{% endblock %}
+{% block body %}
+{% include "partials/_nav.html" %}
+
+<header class="hero"><div class="wrap">
+  <span class="live"><span class="d"></span> Работает сейчас</span>
+  <h1>Находите клиентов в Telegram <span class="g">на автопилоте</span></h1>
+  <p>Stackly Lead Finder читает тысячи сообщений в чатах, находит тех, кто прямо сейчас ищет ваши услуги, и готовит первый ответ. Вы открываете кабинет — и отвечаете только горячим.</p>
+  <div class="row">
+    <a class="btn" href="/register">→ Начать бесплатно</a>
+    <a class="btn ghost" href="/guide">Как это работает</a>
+  </div>
+  <div class="trust"><span>✓ Без карты</span><span>🔒 Только чтение, аккаунт под вашим контролем</span><span>⚡ Запуск за 15 минут</span></div>
+</div></header>
+
+<section><div class="wrap">
+  <h2 class="center">Хватит читать сотни сообщений ради одного нужного</h2>
+  <p class="sub">Stackly Lead Finder делает это за вас и собирает реальных клиентов в одном окне</p>
+  <div class="grid2">
+    <div class="card" style="background:#fff7f7;border-color:#fecaca">
+      <h3 style="font-size:18px;margin-bottom:14px">❌ Без сервиса</h3>
+      <p style="margin-bottom:10px"><b>3–4 часа на поиск одного лида.</b> <span class="muted">Листаете чаты вручную.</span></p>
+      <p style="margin-bottom:10px"><b>Пропускаете горячих.</b> <span class="muted">Клиент ушёл к конкуренту.</span></p>
+      <p style="margin-bottom:10px"><b>Тонете в шуме.</b> <span class="muted">Флуд и реклама забивают ленту.</span></p>
+      <p><b>Не знаете, что написать.</b> <span class="muted">Первый ответ даётся тяжело.</span></p>
+    </div>
+    <div class="card" style="background:#f0fdf4;border-color:#bbf7d0">
+      <h3 style="font-size:18px;margin-bottom:14px">✓ Со Stackly Lead Finder</h3>
+      <p style="margin-bottom:10px"><b>Минута в день.</b> <span class="muted">Только сообщения потенциальных клиентов.</span></p>
+      <p style="margin-bottom:10px"><b>Первый в очереди.</b> <span class="muted">Мгновенный пуш — отвечаете раньше всех.</span></p>
+      <p style="margin-bottom:10px"><b>AI-фильтрация без шума.</b> <span class="muted">Оценивает релевантность каждого.</span></p>
+      <p><b>Готовый ответ.</b> <span class="muted">AI пишет первый ответ — остаётся отправить.</span></p>
+    </div>
+  </div>
+</div></section>
+
+<section style="background:var(--soft)"><div class="wrap">
+  <h2 class="center">Запуск за 15 минут</h2>
+  <p class="sub">Четыре шага — и первые лиды приходят уже сегодня</p>
+  <div class="grid4">
+    <div class="card step"><div class="num">1</div><h3>Подключите Telegram</h3><p>Вход по QR через официальный API. Пароль не хранится.</p></div>
+    <div class="card step"><div class="num">2</div><h3>Выберите чаты</h3><p>Отметьте группы для мониторинга.</p></div>
+    <div class="card step"><div class="num">3</div><h3>Задайте ключевые слова</h3><p>Триггеры намерения и стоп-слова — или с помощью AI.</p></div>
+    <div class="card step"><div class="num">4</div><h3>Получайте лидов</h3><p>Пуш в Telegram-бот + лента в кабинете с готовым ответом.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2 class="center">Почему Stackly Lead Finder</h2>
+  <table class="cmp">
+    <tr><th></th><th>Stackly Lead Finder</th><th>Ручной поиск</th><th>Парсеры</th><th>Фрилансер</th></tr>
+    <tr><td>Мониторинг 24/7</td><td class="us">Всегда</td><td>Нет</td><td>По расписанию</td><td>Нет</td></tr>
+    <tr><td>AI-квалификация</td><td class="us">Да</td><td>Субъективно</td><td>Нет</td><td>Зависит</td></tr>
+    <tr><td>Скорость отклика</td><td class="us">~30 сек</td><td>Часы</td><td>Минуты</td><td>Часы</td></tr>
+    <tr><td>Готовый ответ</td><td class="us">Да</td><td>Нет</td><td>Нет</td><td>Зависит</td></tr>
+    <tr><td>Стоимость / мес</td><td class="us">от 990 ₽</td><td>десятки часов</td><td>трудоёмко</td><td>от 30 000 ₽</td></tr>
+  </table>
+  <div style="text-align:center;margin-top:30px"><a class="btn" href="/register">⚡ Начать бесплатно</a></div>
+</div></section>
+
+<section><div class="wrap"><div class="final">
+  <h2>Ваш следующий клиент уже пишет в чат</h2>
+  <p>Запустите Stackly Lead Finder и получите первых лидов сегодня. 5 дней бесплатно, без карты.</p>
+  <a class="btn" href="/register">Начать бесплатно</a>
+</div></div></section>
+
+{% include "partials/_footer.html" %}
+{% endblock %}

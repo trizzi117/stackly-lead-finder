@@ -1,0 +1,20 @@
+{% extends "app_base.html" %}
+{% block title %}Контакты{% endblock %}
+{% block page_title %}Контакты{% endblock %}
+{% block app_content %}
+{% if not contacts %}
+  <div class="empty"><h3>Контактов пока нет</h3><p class="muted">Они появятся, когда придут первые лиды.</p></div>
+{% else %}
+<table class="data">
+  <tr><th>Контакт</th><th>Username</th><th>Сообщений</th><th>Последнее</th></tr>
+  {% for c in contacts %}
+  <tr>
+    <td><b>{{ c.sender_name or '—' }}</b></td>
+    <td>{% if c.username %}<a href="https://t.me/{{ c.username }}" target="_blank" style="color:var(--brand)">@{{ c.username }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+    <td>{{ c.n }}</td>
+    <td class="muted">{{ c.last }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

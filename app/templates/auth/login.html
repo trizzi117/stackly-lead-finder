@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Вход — Stackly Lead Finder{% endblock %}
+{% block body %}
+{% include "partials/_nav.html" %}
+<div class="auth"><form class="box" method="post" action="/login">
+  <h1>Вход</h1>
+  <p class="s">Рады видеть снова</p>
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  <label>Email</label>
+  <input type="email" name="email" value="{{ email or '' }}" required autofocus>
+  <label>Пароль</label>
+  <input type="password" name="password" required>
+  <button class="btn block" style="margin-top:18px">Войти</button>
+  <p class="s" style="margin-top:16px">Нет аккаунта? <a href="/register" style="color:var(--brand);font-weight:600">Регистрация</a></p>
+</form></div>
+{% endblock %}

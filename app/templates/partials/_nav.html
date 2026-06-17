@@ -1,0 +1,17 @@
+<nav class="top"><div class="wrap row">
+  <a class="brand" href="/">Stackly <b>Lead Finder</b></a>
+  <div class="links">
+    <a href="/features">Функции</a>
+    <a href="/pricing">Тарифы</a>
+    <a href="/guide">Гайд</a>
+    <a href="/faq">FAQ</a>
+  </div>
+  <div class="cta">
+    {% if user %}
+      <a class="btn ghost" href="/app">Кабинет</a>
+    {% else %}
+      <a class="login muted" href="/login" style="font-weight:600">Войти</a>
+      <a class="btn" href="/register">Начать бесплатно</a>
+    {% endif %}
+  </div>
+</div></nav>

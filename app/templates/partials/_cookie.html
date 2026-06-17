@@ -1,0 +1,31 @@
+<div id="cookie-bar" class="cookie-bar" style="display:none">
+  <div class="cookie-inner">
+    <div class="cookie-text">🍪 Мы используем файлы cookie для аналитики, чтобы улучшать продукт. Продолжая, вы соглашаетесь с <a href="/privacy">Политикой конфиденциальности</a>.</div>
+    <div class="cookie-actions">
+      <button class="btn ghost sm" onclick="cookieChoice('declined')">Только необходимые</button>
+      <button class="btn sm" onclick="cookieChoice('accepted')">Принять все</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var bar=document.getElementById('cookie-bar');
+  var c=null; try{c=localStorage.getItem('cookie_consent');}catch(e){}
+  if(!c){ if(bar) bar.style.display='block'; }
+  else if(c==='accepted'){ loadAnalytics(); }
+  window.cookieChoice=function(v){
+    try{localStorage.setItem('cookie_consent',v);}catch(e){}
+    if(bar) bar.style.display='none';
+    if(v==='accepted') loadAnalytics();
+  };
+  function loadAnalytics(){
+    if(window.__analyticsLoaded) return; window.__analyticsLoaded=true;
+    var id="{{ METRIKA_ID }}"; if(!id) return;   // грузим Метрику ТОЛЬКО после согласия
+    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();
+      for(var j=0;j<e.scripts.length;j++){if(e.scripts[j].src===r){return;}}
+      k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+      (window,document,"script","https://mc.yandex.ru/metrika/tag.js","ym");
+    ym(id,"init",{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:true});
+  }
+})();
+</script>

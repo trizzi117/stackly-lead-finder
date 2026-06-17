@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Тарифы — Stackly Lead Finder{% endblock %}
+{% block body %}
+{% include "partials/_nav.html" %}
+<section><div class="wrap">
+  <h2 class="center">Прозрачные цены без сюрпризов</h2>
+  <p class="sub">Начните с малого — растите без ограничений. 5 дней бесплатно, без карты.</p>
+  <div class="plans">
+    <div class="plan"><h3>Старт</h3><div class="price">990 ₽<small>/мес</small></div>
+      <ul><li>1 аккаунт</li><li>До 9 чатов</li><li>До 500 лидов/мес</li><li>Бот-уведомления</li></ul>
+      <a class="btn ghost block" href="/register">Выбрать</a></div>
+    <div class="plan"><h3>Про</h3><div class="price">2 900 ₽<small>/мес</small></div>
+      <ul><li>До 100 чатов</li><li>До 5 000 лидов/мес</li><li>Статистика</li><li>AI-ассистенты слов</li></ul>
+      <a class="btn ghost block" href="/register">Выбрать</a></div>
+    <div class="plan pop"><span class="pop-tag">Популярный</span><h3>Бизнес</h3><div class="price">5 900 ₽<small>/мес</small></div>
+      <ul><li>2 аккаунта · 150 чатов</li><li>До 15 000 лидов/мес</li><li>AI-классификация</li><li>AI-ответы</li><li>Приоритетная поддержка</li></ul>
+      <a class="btn block" href="/register">Выбрать</a></div>
+    <div class="plan"><h3>Агентство</h3><div class="price">9 900 ₽<small>/мес</small></div>
+      <ul><li>3 аккаунта · 200 чатов</li><li>Безлимит лидов</li><li>Все AI-функции</li><li>Личный менеджер</li></ul>
+      <a class="btn ghost block" href="/register">Выбрать</a></div>
+  </div>
+  <p class="sub" style="margin-top:24px">Нужна установка под ключ? <a href="https://t.me/stackly_automation_bot" style="color:var(--brand);font-weight:600">Напишите нам</a> — настроим за вас.</p>
+</div></section>
+{% include "partials/_footer.html" %}
+{% endblock %}

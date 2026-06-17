@@ -1,0 +1,35 @@
+{% extends "app_base.html" %}
+{% block title %}Telegram-бот{% endblock %}
+{% block page_title %}Telegram-бот{% endblock %}
+{% block app_content %}
+{% if user.bot_linked %}
+  <div class="banner good">
+    <span class="dot green"></span>
+    <div><b>Бот подключён</b>
+      <div class="muted" style="font-size:13px">Лиды и сообщения о биллинге/аккаунте приходят вам в личку с ботом.</div></div>
+  </div>
+{% else %}
+  <div class="banner warn" style="margin-bottom:18px">
+    <span class="dot red"></span>
+    <div><b>Не подключён</b>
+      <div class="muted" style="font-size:13px">Лиды и оповещения об аккаунте приходят через наш Telegram-бот. Сообщения о биллинге и аккаунте всегда приходят в вашу личку с ботом.</div></div>
+  </div>
+  <div class="card">
+    <h3 style="font-size:17px;margin-bottom:10px">Как подключить</h3>
+    {% if deep_link %}
+      <ol class="muted" style="padding-left:18px;line-height:2">
+        <li>Нажмите кнопку ниже — откроется чат с ботом{% if bot_username %} @{{ bot_username }}{% endif %}</li>
+        <li>Нажмите <b>Start</b> в боте</li>
+        <li>Готово — вернитесь сюда, страница обновит статус</li>
+      </ol>
+      <a class="btn" href="{{ deep_link }}" target="_blank" style="margin-top:12px">🤖 Открыть бота и подключить</a>
+      <p class="muted" style="margin-top:12px;font-size:13px">После нажатия Start обновите эту страницу.</p>
+    {% else %}
+      <div class="err">Платформенный бот не настроен (PLATFORM_BOT_USERNAME в .env). Задайте бота у @BotFather и пропишите токен/username.</div>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}
+{% block app_script %}
+{% if not user.bot_linked %}<script>setTimeout(()=>location.reload(),15000);</script>{% endif %}
+{% endblock %}

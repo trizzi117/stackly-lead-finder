@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Функции — Stackly Lead Finder{% endblock %}
+{% block body %}
+{% include "partials/_nav.html" %}
+<section><div class="wrap">
+  <h2 class="center">Все инструменты для лидогенерации</h2>
+  <p class="sub">Полный набор для автоматического поиска и обработки клиентов в Telegram</p>
+  <div class="grid3">
+    <div class="card feat"><div class="e">⚡</div><h3>Мгновенные уведомления</h3><p>Сообщение клиента приходит в бот сразу, со ссылкой на автора.</p></div>
+    <div class="card feat"><div class="e">🔒</div><h3>Безопасность</h3><p>Официальный MTProto API, только чтение. Переписки не хранятся, сессия шифруется.</p></div>
+    <div class="card feat"><div class="e">🚫</div><h3>Стоп-слова</h3><p>Отсекают мусор и повышают точность — целевые лиды без флуда.</p></div>
+    <div class="card feat"><div class="e">🤖</div><h3>AI-настройка слов</h3><p>Ассистент соберёт ключевые и стоп-слова под вашу нишу.</p></div>
+    <div class="card feat"><div class="e">🎯</div><h3>AI-классификация</h3><p>Оценивает намерение, срочность и релевантность: горячий / тёплый / холодный.</p></div>
+    <div class="card feat"><div class="e">✍️</div><h3>AI-ответы</h3><p>Готовый вовлекающий первый ответ — остаётся только отправить.</p></div>
+    <div class="card feat"><div class="e">🔎</div><h3>Поиск похожих чатов</h3><p>Расширяйте охват — находите новые группы вашей аудитории.</p></div>
+    <div class="card feat"><div class="e">👥</div><h3>Контакты и воронка</h3><p>Группировка по отправителю, статусы new → contacted → converted.</p></div>
+    <div class="card feat"><div class="e">📊</div><h3>Статистика</h3><p>Какие чаты и ключи приносят больше лидов — в реальном времени.</p></div>
+  </div>
+  <div style="text-align:center;margin-top:34px"><a class="btn" href="/register">→ Попробовать бесплатно</a></div>
+</div></section>
+{% include "partials/_footer.html" %}
+{% endblock %}

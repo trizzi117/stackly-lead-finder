@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="shell">
+  <aside class="side">
+    <div class="logo">Stackly <b>LF</b></div>
+    <a href="/app" class="{{ 'on' if active=='dashboard' }}">📥 <span>Лиды</span></a>
+    <a href="/app/stats" class="{{ 'on' if active=='stats' }}">📊 <span>Статистика</span></a>
+    <a href="/app/contacts" class="{{ 'on' if active=='contacts' }}">👥 <span>Контакты</span></a>
+    <div class="sep"></div>
+    <a href="/app/chats" class="{{ 'on' if active=='chats' }}">💬 <span>Чаты</span></a>
+    <a href="/app/discovery" class="{{ 'on' if active=='discovery' }}">🔭 <span>Поиск каналов</span></a>
+    <a href="/app/keywords" class="{{ 'on' if active=='keywords' }}">🔑 <span>Ключевые слова</span></a>
+    <a href="/app/connect" class="{{ 'on' if active=='connect' }}">📱 <span>Telegram-аккаунт</span></a>
+    <a href="/app/bot" class="{{ 'on' if active=='bot' }}">🤖 <span>Telegram-бот</span></a>
+    <div class="sep"></div>
+    <a href="/app/billing" class="{{ 'on' if active=='billing' }}">💳 <span>Тариф</span></a>
+    <a href="/app/settings" class="{{ 'on' if active=='settings' }}">⚙️ <span>Настройки</span></a>
+    <a href="/guide" target="_blank">📖 <span>Гайд</span></a>
+    <div class="sep"></div>
+    <a href="/logout">↩ <span>Выйти</span></a>
+    <div class="small">{{ user.email }}</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h1>{% block page_title %}{% endblock %}</h1>
+      <div class="right">
+        {% if sub and sub.is_active() %}
+          {% if sub.status=='trialing' %}
+            <span class="pill" style="color:var(--warm);border-color:#fcd34d">Триал · {{ plan_title(sub.plan) }}</span>
+          {% else %}
+            <span class="pill" style="color:var(--ok);border-color:#bbf7d0">{{ plan_title(sub.plan) }}</span>
+          {% endif %}
+        {% else %}
+          <a class="pill" href="/app/billing" style="color:var(--hot);border-color:#fecaca">Подписка неактивна</a>
+        {% endif %}
+        {% if not user.bot_linked %}<a class="pill" href="/app/bot">Бот не подключён</a>{% endif %}
+      </div>
+    </div>
+    <div class="content">
+      {% block app_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% block app_script %}{% endblock %}
+{% endblock %}

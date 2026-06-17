@@ -1,0 +1,119 @@
+{% extends "app_base.html" %}
+{% block title %}Чаты{% endblock %}
+{% block page_title %}Чаты{% endblock %}
+{% block app_content %}
+{% if msg %}<div class="ok">{{ msg }}</div>{% endif %}
+
+{% if not acc or acc.status != 'connected' %}
+  <div class="banner warn">
+    <span class="dot red"></span>
+    <div><b>Telegram-аккаунт не подключён.</b> <span class="muted">Сначала подключите аккаунт, чтобы видеть свои чаты.</span></div>
+    <a class="btn sm" href="/app/connect" style="margin-left:auto">Подключить</a>
+  </div>
+{% else %}
+
+  <!-- Как это работает: 4 шага -->
+  <div class="guidegrid" style="margin-top:0;margin-bottom:22px">
+    <div class="gcard"><div class="e">①</div><h3>Синхронизируйте группы</h3><p>Кнопка «Синхронизировать» подтянет все группы и каналы аккаунта. Жмите её после вступления в новые. Только чтение — в чаты ничего не уходит.</p></div>
+    <div class="gcard"><div class="e">②</div><h3>Включайте нужные</h3><p>Переключатель добавляет чат в мониторинг. Совпадения приходят только из включённых. Баннер показывает, сколько слотов свободно на тарифе.</p></div>
+    <div class="gcard"><div class="e">③</div><h3>Ищите и фильтруйте</h3><p>Поиск по названию или @username + фильтры: группы, каналы, выбранные, невыбранные. Работают вместе — удобно при сотнях комнат.</p></div>
+    <div class="gcard"><div class="e">④</div><h3>Найти похожие</h3><p>ИИ подберёт связанные публичные группы и каналы, которых ещё нет в списке, — с оценкой релевантности. Быстрый способ расширить охват. Тариф Про+.</p></div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+    <form method="post" action="/app/chats/sync"><button class="btn">↻ Синхронизировать чаты</button></form>
+    <span class="muted">Активно: <b>{{ active_n }}</b> / {{ limits.chats }} слотов (тариф {{ plan_title(sub.plan) if sub else '—' }})</span>
+  </div>
+
+  {% if not chats %}
+    <div class="empty"><h3>Список пуст</h3><p class="muted">Нажмите «Синхронизировать чаты», чтобы подтянуть группы из Telegram.</p></div>
+  {% else %}
+    <!-- поиск + фильтры -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <input type="text" id="chatSearch" placeholder="🔎 Поиск по названию или @username" style="max-width:320px" oninput="applyFilters()">
+      <div class="toolbar" style="margin:0">
+        {% for v,l in [('all','Все'),('group','Группы'),('channel','Каналы'),('selected','Выбранные'),('unselected','Невыбранные')] %}
+        <button type="button" class="chip {{ 'on' if v=='all' }}" data-filter="{{ v }}" onclick="setFilter(this)">{{ l }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="similarPanel" class="card" style="display:none;margin-bottom:14px"></div>
+
+    <table class="data" id="chatsTable">
+      <tr><th>Чат</th><th>Тип</th><th>Username</th><th>Статус</th><th></th></tr>
+      {% for c in chats %}
+      <tr data-title="{{ (c.title or '')|lower }}" data-username="{{ (c.username or '')|lower }}"
+          data-kind="{{ 'channel' if c.is_channel else 'group' }}" data-active="{{ '1' if c.active else '0' }}">
+        <td><b>{{ c.title or c.chat_id }}</b></td>
+        <td><span class="pill">{{ 'канал' if c.is_channel else 'группа' }}</span></td>
+        <td>{% if c.username %}@{{ c.username }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{% if c.active %}<span class="pill" style="color:var(--ok);border-color:#bbf7d0">мониторится</span>{% else %}<span class="pill">выкл</span>{% endif %}</td>
+        <td style="white-space:nowrap">
+          <form method="post" action="/app/chats/{{ c.id }}/toggle" style="display:inline">
+            <button class="btn {{ 'ghost' if c.active else '' }} sm">{{ 'Выключить' if c.active else 'Включить' }}</button>
+          </form>
+          <button type="button" class="btn ghost sm" onclick="findSimilar({{ c.id }}, this)">✨ Похожие</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <div id="noMatch" class="empty" style="display:none"><p class="muted">Ничего не найдено по фильтрам.</p></div>
+  {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block app_script %}
+<script>
+let curFilter='all';
+function setFilter(btn){
+  curFilter=btn.dataset.filter;
+  document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('on', b===btn));
+  applyFilters();
+}
+function applyFilters(){
+  const q=(document.getElementById('chatSearch').value||'').toLowerCase().trim();
+  const rows=document.querySelectorAll('#chatsTable tr[data-title]');
+  let shown=0;
+  rows.forEach(r=>{
+    const matchText = !q || r.dataset.title.includes(q) || r.dataset.username.includes(q);
+    let matchFilter=true;
+    if(curFilter==='group') matchFilter=r.dataset.kind==='group';
+    else if(curFilter==='channel') matchFilter=r.dataset.kind==='channel';
+    else if(curFilter==='selected') matchFilter=r.dataset.active==='1';
+    else if(curFilter==='unselected') matchFilter=r.dataset.active==='0';
+    const show=matchText&&matchFilter;
+    r.style.display=show?'':'none';
+    if(show) shown++;
+  });
+  const nm=document.getElementById('noMatch');
+  if(nm) nm.style.display=shown?'none':'block';
+}
+async function findSimilar(chatId, btn){
+  const panel=document.getElementById('similarPanel');
+  panel.style.display='block';
+  panel.innerHTML='<div class="muted">✨ ИИ подбирает похожие чаты…</div>';
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  try{
+    const r=await fetch(`/app/chats/${chatId}/similar`,{method:'POST'});
+    const d=await r.json();
+    if(!d.ok){ panel.innerHTML=`<b>Найти похожие</b><p class="muted" style="margin-top:6px">${d.message||'Не удалось.'}</p>`; return; }
+    let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><b>Похожие на «${d.source}»</b><button class="btn ghost sm" style="margin-left:auto" onclick="document.getElementById('similarPanel').style.display='none'">Скрыть</button></div>`;
+    html+='<div class="bars">';
+    (d.items||[]).forEach(it=>{
+      const rel=Math.max(0,Math.min(100,it.relevance||0));
+      html+=`<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px"><b>${esc(it.name||'')}</b>
+          <span class="track" style="flex:1;max-width:160px"><span class="fill" style="width:${rel}%"></span></span>
+          <span class="muted" style="font-size:12px">${rel}/100</span></div>
+        <div class="muted" style="font-size:13px;margin-top:4px">${esc(it.why||'')}</div>
+        ${it.query?`<div style="font-size:12.5px;margin-top:4px">🔎 искать в Telegram: <b>${esc(it.query)}</b></div>`:''}
+      </div>`;
+    });
+    html+='</div>';
+    panel.innerHTML=html;
+  }catch(e){ panel.innerHTML='<p class="muted">Ошибка запроса. Попробуйте ещё раз.</p>'; }
+}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+</script>
+{% endblock %}

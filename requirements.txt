@@ -1,0 +1,12 @@
+# Stackly Lead Finder — зависимости
+telethon==1.36.0          # MTProto клиент (слушатель чатов)
+httpx==0.27.2             # async HTTP (LLM + Telegram Bot API)
+fastapi==0.115.0          # web-приложение (сайт + кабинет + API)
+uvicorn[standard]==0.30.6 # ASGI сервер
+jinja2==3.1.4             # шаблоны страниц
+python-multipart==0.0.12  # обработка форм (логин/регистрация)
+itsdangerous==2.2.0       # подпись cookie-сессий
+SQLAlchemy==2.0.35        # ORM (мульти-тенант БД)
+segno==1.6.1              # генерация QR-кода для входа в Telegram
+PyYAML==6.0.2             # пресеты ниш
+python-dotenv==1.0.1      # загрузка .env

@@ -1,0 +1,130 @@
+{% extends "app_base.html" %}
+{% block title %}Поиск каналов{% endblock %}
+{% block page_title %}Поиск каналов{% endblock %}
+{% block app_content %}
+{% if not acc or acc.status != 'connected' %}
+  <div class="banner warn">
+    <span class="dot red"></span>
+    <div><b>Telegram-аккаунт не подключён.</b> <span class="muted">Поиск работает через ваш аккаунт — сначала подключите его.</span></div>
+    <a class="btn sm" href="/app/connect" style="margin-left:auto">Подключить</a>
+  </div>
+{% else %}
+  <p class="muted" style="margin-bottom:16px">Два режима ведут к одному шагу выбора чатов. <b>Простой</b> — вы сами вставляете ключи. <b>ИИ-поиск</b> — описываете бизнес, ключи и оценку релевантности добавляет ИИ.</p>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="simple" onclick="switchTab(this)">Простой поиск</button>
+    <button class="tab" data-tab="ai" onclick="switchTab(this)">ИИ-поиск</button>
+  </div>
+
+  <!-- ПРОСТОЙ -->
+  <div id="tab-simple" class="card" style="margin-top:14px">
+    <label style="margin-top:0">Ключевые фразы (через запятую или с новой строки)</label>
+    <textarea id="simpleQ" placeholder="разработчик, дизайнер, агентство, фрилансер" oninput="countQ()"></textarea>
+    <div class="muted" style="font-size:13px;margin-top:6px">Распознано запросов: <b id="qCount">0</b></div>
+    <button class="btn" style="margin-top:12px" onclick="runSimple(this)">🔎 Найти</button>
+  </div>
+
+  <!-- ИИ -->
+  <div id="tab-ai" class="card" style="margin-top:14px;display:none">
+    <label style="margin-top:0">Опишите бизнес: кому продаёте, что, важные детали</label>
+    <textarea id="aiBiz" placeholder="Внедряю автоматизацию (CRM, боты, сайты) для малого бизнеса в РФ. Клиенты — владельцы небольших компаний.">{{ user.business_context or '' }}</textarea>
+    <button class="btn ghost" style="margin-top:12px" onclick="genKeys(this)">✨ Сгенерировать ключи</button>
+    <div id="chipsBox" style="display:none;margin-top:16px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">Ключевые слова</div><div id="kw" class="chipset"></div>
+      <div style="font-weight:700;font-size:13px;margin:12px 0 6px">Стоп-слова</div><div id="sw" class="chipset"></div>
+      <div style="font-weight:700;font-size:13px;margin:12px 0 6px">Запросы для поиска (отметьте нужные)</div><div id="qq" class="chipset"></div>
+      <button class="btn" style="margin-top:14px" onclick="runAi(this)">🔎 Найти каналы</button>
+    </div>
+  </div>
+
+  <!-- РЕЗУЛЬТАТЫ -->
+  <div id="resultsWrap" style="display:none;margin-top:20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <h3 style="font-size:16px">Найденные чаты</h3>
+      <span class="muted" id="resMeta" style="font-size:13px"></span>
+      <button class="btn" style="margin-left:auto" onclick="applySelected(this)">Применить и начать мониторинг</button>
+    </div>
+    <div id="results"></div>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block app_script %}
+<script>
+let results=[];
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function switchTab(btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t===btn));
+  document.getElementById('tab-simple').style.display = btn.dataset.tab==='simple'?'block':'none';
+  document.getElementById('tab-ai').style.display = btn.dataset.tab==='ai'?'block':'none';
+}
+function countQ(){
+  const v=document.getElementById('simpleQ').value;
+  const n=v.split(/[,\n]/).map(s=>s.trim()).filter(Boolean).length;
+  document.getElementById('qCount').textContent=n;
+}
+async function post(url,body){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return r.json();}
+
+async function runSimple(btn){
+  btn.disabled=true; btn.textContent='Ищу…';
+  const d=await post('/app/discovery/simple',{queries:document.getElementById('simpleQ').value});
+  btn.disabled=false; btn.textContent='🔎 Найти';
+  if(!d.ok){alert(d.message||'Ошибка');return;}
+  renderResults(d.results, false);
+}
+async function genKeys(btn){
+  btn.disabled=true; btn.textContent='ИИ думает…';
+  const d=await post('/app/discovery/ai-keys',{business:document.getElementById('aiBiz').value});
+  btn.disabled=false; btn.textContent='✨ Сгенерировать ключи';
+  if(!d.ok){alert(d.message||'Ошибка');return;}
+  fillChips('kw',d.keywords,true); fillChips('sw',d.stop_words,true); fillChips('qq',d.queries,true);
+  document.getElementById('chipsBox').style.display='block';
+}
+function fillChips(id,arr,on){
+  document.getElementById(id).innerHTML=(arr||[]).map(x=>`<span class="chip-tog ${on?'on':''}" onclick="this.classList.toggle('on')">${esc(x)}</span>`).join('');
+}
+function checkedChips(id){return [...document.querySelectorAll('#'+id+' .chip-tog.on')].map(e=>e.textContent);}
+async function runAi(btn){
+  const queries=checkedChips('qq');
+  if(!queries.length){alert('Отметьте хотя бы один запрос');return;}
+  btn.disabled=true; btn.textContent='Ищу каналы…';
+  const d=await post('/app/discovery/ai-search',{queries,business:document.getElementById('aiBiz').value});
+  btn.disabled=false; btn.textContent='🔎 Найти каналы';
+  if(!d.ok){alert(d.message||'Ошибка');return;}
+  renderResults(d.results, true);
+}
+function renderResults(list, withRelev){
+  results=list||[];
+  document.getElementById('resultsWrap').style.display='block';
+  document.getElementById('resMeta').textContent=`найдено ${results.length}`;
+  if(!results.length){document.getElementById('results').innerHTML='<div class="muted">Ничего не найдено. Попробуйте другие фразы.</div>';return;}
+  document.getElementById('results').innerHTML=results.map((r,i)=>{
+    let ring='';
+    if(withRelev && r.relevance!=null){
+      const col=r.relevance>=70?'#22c55e':(r.relevance>=40?'#f59e0b':'#94a3b8');
+      ring=`<span class="relev" style="background:${col}">${r.relevance}</span>`;
+    }
+    const ppl=r.participants!=null?`👥 ${r.participants.toLocaleString('ru-RU')}`:'';
+    const uname=r.username?`@${esc(r.username)}`:'<span class="muted">приватный</span>';
+    return `<label class="disco-card">
+      <input type="checkbox" data-i="${i}" style="width:auto">
+      ${ring}
+      <span style="flex:1"><b>${esc(r.title)}</b> <span class="pill">${r.is_channel?'канал':'группа'}</span>
+        <div class="muted" style="font-size:13px">${uname} ${ppl}</div></span>
+    </label>`;
+  }).join('');
+}
+async function applySelected(btn){
+  const items=[...document.querySelectorAll('#results input:checked')].map(c=>results[+c.dataset.i]);
+  if(!items.length){alert('Отметьте чаты галочками');return;}
+  if(!confirm(`Вступить и начать мониторить ${items.length} чат(ов)? Вступление идёт медленно — не закрывайте вкладку.`))return;
+  btn.disabled=true; btn.textContent='Применяю…';
+  const d=await post('/app/discovery/apply',{items});
+  btn.disabled=false; btn.textContent='Применить и начать мониторинг';
+  if(!d.ok){alert(d.message||'Ошибка');return;}
+  alert(`Готово: добавлено и активировано ${d.added}. Открой «Чаты», чтобы проверить.`);
+  window.location='/app/chats';
+}
+</script>
+{% endblock %}

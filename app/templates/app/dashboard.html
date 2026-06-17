@@ -1,0 +1,68 @@
+{% extends "app_base.html" %}
+{% block title %}Лиды{% endblock %}
+{% block page_title %}Лиды{% endblock %}
+{% block app_content %}
+<div class="cards">
+  <div class="stat"><div class="n">{{ stats.today }}</div><div class="l">Сегодня</div></div>
+  <div class="stat"><div class="n">{{ stats.total }}</div><div class="l">Всего</div></div>
+  <div class="stat hot"><div class="n">{{ stats.hot }}</div><div class="l">🔥 Горячих</div></div>
+  <div class="stat warm"><div class="n">{{ stats.warm }}</div><div class="l">🌤 Тёплых</div></div>
+  <div class="stat cold"><div class="n">{{ stats.cold }}</div><div class="l">❄️ Холодных</div></div>
+</div>
+
+<div class="toolbar">
+  {% set classes = [('all','Все'),('hot','🔥 Горячие'),('warm','🌤 Тёплые'),('cold','❄️ Холодные')] %}
+  {% for val,label in classes %}
+    <a class="chip {{ 'on' if cur_class==val }}" href="/app?classification={{ val }}&status={{ cur_status }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+{% if not leads %}
+  <div class="empty">
+    <h3>Пока нет лидов</h3>
+    <p class="muted">Подключите Telegram-аккаунт, выберите чаты и задайте ключевые слова — лиды появятся здесь автоматически.</p>
+    <p style="margin-top:14px"><a class="btn" href="/app/connect">Подключить Telegram</a></p>
+  </div>
+{% else %}
+  {% for l in leads %}
+  <div class="lead {{ l.classification }}">
+    <div class="lhead">
+      <span class="badge {{ l.classification }}">{{ {'hot':'Горячий','warm':'Тёплый','cold':'Холодный'}.get(l.classification, l.classification) }}</span>
+      <span class="score">{{ l.score or 0 }}/100</span>
+      <span class="who">{{ l.sender_name }}{% if l.username %} <span class="chat">@{{ l.username }}</span>{% endif %}</span>
+      <span class="pill" title="Чат-источник">💬 {{ l.chat_title }}</span>
+      <span class="when">{{ l.created_at.strftime('%d.%m %H:%M') }}</span>
+    </div>
+    <div class="ltext">{{ l.text }}</div>
+    {% if l.intent %}<div class="intent">🧠 <b>{{ l.intent }}</b>{% if l.keyword %} · ключ: «{{ l.keyword }}»{% endif %}</div>{% endif %}
+    {% if l.reply %}
+      <div class="reply"><div class="cap">✍️ Готовый ответ</div>
+        <div id="rp{{ l.id }}">{{ l.reply }}</div>
+        <div class="lrow"><button class="btn ghost sm" type="button" onclick="copyReply({{ l.id }})">⧉ Копировать</button></div>
+      </div>
+    {% endif %}
+    <div class="lrow">
+      {% for val,label in [('new','Новый'),('contacted','Написал'),('converted','Клиент'),('dismissed','Мимо')] %}
+      <form method="post" action="/app/leads/{{ l.id }}/status">
+        <input type="hidden" name="status" value="{{ val }}">
+        <button class="btn {{ '' if l.status==val else 'ghost' }} sm">{{ label }}</button>
+      </form>
+      {% endfor %}
+      {% if l.link %}<a class="tg" href="{{ l.link }}" target="_blank">Открыть в Telegram →</a>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}
+{% block app_script %}
+<script>
+function copyReply(id){
+  const t=document.getElementById('rp'+id).innerText;
+  navigator.clipboard.writeText(t).then(()=>{
+    const el=document.createElement('div');el.textContent='Скопировано';
+    el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 18px;border-radius:10px;font-weight:600;z-index:99';
+    document.body.appendChild(el);setTimeout(()=>el.remove(),1400);
+  });
+}
+</script>
+{% endblock %}

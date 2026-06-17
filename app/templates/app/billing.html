@@ -1,0 +1,48 @@
+{% extends "app_base.html" %}
+{% block title %}Тариф{% endblock %}
+{% block page_title %}Тариф и подписка{% endblock %}
+{% block app_content %}
+{% if msg %}<div class="ok">{{ msg }}</div>{% endif %}
+
+<div class="card" style="margin-bottom:20px">
+  {% if sub and sub.is_active() %}
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="dot green"></span>
+      <div>
+        <b>{{ plan_title(sub.plan) }}</b> —
+        {% if sub.status=='trialing' %}пробный период до {{ sub.trial_ends_at.strftime('%d.%m.%Y') if sub.trial_ends_at }}{% else %}активна до {{ sub.current_period_end.strftime('%d.%m.%Y') if sub.current_period_end }}{% endif %}
+        <div class="muted" style="font-size:13px">Лимиты: до {{ limits.chats }} чатов, до {{ '∞' if limits.leads_month > 1000000 else limits.leads_month }} лидов/мес</div>
+      </div>
+      <form method="post" action="/app/billing/cancel" style="margin-left:auto"><button class="btn ghost sm">Отменить</button></form>
+    </div>
+  {% else %}
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="dot red"></span>
+      <div><b>Подписка неактивна.</b> <span class="muted">Выберите тариф ниже, чтобы запустить мониторинг.</span></div>
+    </div>
+  {% endif %}
+</div>
+
+<div class="plans">
+  {% for key in PLAN_ORDER %}
+  {% set p = PLANS[key] %}
+  <div class="plan {{ 'pop' if key=='business' }}">
+    {% if key=='business' %}<span class="pop-tag">Популярный</span>{% endif %}
+    <h3>{{ p.title }}</h3>
+    <div class="price">{{ '{:,}'.format(p.price_rub).replace(',', ' ') }} ₽<small>/мес</small></div>
+    <ul>
+      <li>До {{ p.chats }} чатов</li>
+      <li>{{ '∞ лидов' if p.leads_month > 1000000 else 'до ' ~ p.leads_month ~ ' лидов/мес' }}</li>
+      <li>{{ 'AI-классификация + ответы' if p.ai_replies else 'AI-классификация' }}</li>
+    </ul>
+    <form method="post" action="/app/billing/checkout">
+      <input type="hidden" name="plan" value="{{ key }}">
+      <button class="btn {{ '' if key=='business' else 'ghost' }} block">
+        {{ 'Текущий' if sub and sub.plan==key and sub.is_active() else 'Выбрать' }}
+      </button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+<p class="muted" style="margin-top:18px;font-size:13px">Оплата подключается под вашу страну (Lava / Cryptomus). В текущем режиме тариф активируется вручную — подтверждение придёт в Telegram-бот.</p>
+{% endblock %}

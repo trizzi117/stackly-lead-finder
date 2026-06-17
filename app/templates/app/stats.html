@@ -1,0 +1,65 @@
+{% extends "app_base.html" %}
+{% block title %}Статистика{% endblock %}
+{% block page_title %}Статистика{% endblock %}
+{% block app_content %}
+<div class="cards">
+  <div class="stat"><div class="n">{{ stats.today }}</div><div class="l">Сегодня</div></div>
+  <div class="stat"><div class="n">{{ stats.total }}</div><div class="l">Всего лидов</div></div>
+  <div class="stat hot"><div class="n">{{ stats.hot }}</div><div class="l">🔥 Горячих</div></div>
+  <div class="stat warm"><div class="n">{{ stats.warm }}</div><div class="l">🌤 Тёплых</div></div>
+  <div class="stat cold"><div class="n">{{ stats.cold }}</div><div class="l">❄️ Холодных</div></div>
+</div>
+
+<div class="grid2" style="margin-top:0">
+  <div class="card"><h3 style="font-size:15px;margin-bottom:12px">Динамика по дням</h3><canvas id="byDay" height="150"></canvas></div>
+  <div class="card"><h3 style="font-size:15px;margin-bottom:12px">Разбивка по классам</h3><canvas id="byClass" height="150"></canvas></div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h3 style="font-size:15px;margin-bottom:12px">Топ ключевых слов</h3>
+    {% if stats.top_keywords %}
+    <div class="bars">
+      {% set kmax = stats.top_keywords[0].n %}
+      {% for k in stats.top_keywords %}
+      <div class="bar"><span style="width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ k.keyword }}</span>
+        <span class="track"><span class="fill" style="width:{{ (k.n / kmax * 100)|round(0,'floor') }}%"></span></span>
+        <span class="v">{{ k.n }}</span></div>
+      {% endfor %}
+    </div>
+    {% else %}<p class="muted">Пока нет данных.</p>{% endif %}
+  </div>
+  <div class="card">
+    <h3 style="font-size:15px;margin-bottom:12px">Топ чатов</h3>
+    {% if stats.top_chats %}
+    <div class="bars">
+      {% set cmax = stats.top_chats[0].n %}
+      {% for c in stats.top_chats %}
+      <div class="bar"><span style="width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.chat }}</span>
+        <span class="track"><span class="fill" style="width:{{ (c.n / cmax * 100)|round(0,'floor') }}%"></span></span>
+        <span class="v">{{ c.n }}</span></div>
+      {% endfor %}
+    </div>
+    {% else %}<p class="muted">Пока нет данных.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block app_script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const byDay = {{ stats.by_day|tojson }};
+const cls = {hot:{{ stats.hot }}, warm:{{ stats.warm }}, cold:{{ stats.cold }}};
+new Chart(document.getElementById('byDay'),{
+  type:'line',
+  data:{labels:byDay.map(d=>d.day),datasets:[{label:'Лиды',data:byDay.map(d=>d.n),
+    borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.12)',fill:true,tension:.3,pointRadius:3}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}
+});
+new Chart(document.getElementById('byClass'),{
+  type:'doughnut',
+  data:{labels:['Горячие','Тёплые','Холодные'],datasets:[{data:[cls.hot,cls.warm,cls.cold],
+    backgroundColor:['#ef4444','#f59e0b','#94a3b8']}]},
+  options:{plugins:{legend:{position:'bottom'}}}
+});
+</script>
+{% endblock %}
