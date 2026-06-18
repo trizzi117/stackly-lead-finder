@@ -2,71 +2,128 @@
 {% block title %}Telegram-аккаунт{% endblock %}
 {% block page_title %}Telegram-аккаунт{% endblock %}
 {% block app_content %}
-{% if acc and acc.status == 'connected' %}
-  <div class="banner good" style="margin-bottom:18px">
+{% set connected = acc and acc.status == 'connected' %}
+
+{% if connected %}
+  <div class="banner good" style="margin-bottom:14px">
     <span class="dot green"></span>
     <div><b>Аккаунт подключён</b> {% if acc.username %}— @{{ acc.username }}{% endif %}
-      <div class="muted" style="font-size:13px">Мониторинг работает. Управляйте чатами в разделе «Чаты».</div></div>
+      <div class="muted" style="font-size:13px">Мониторинг работает. Чаты — в разделе «Чаты».</div></div>
     <a class="btn ghost sm" href="/app/chats" style="margin-left:auto">К чатам →</a>
   </div>
-  <p class="muted">Нужно переподключить другой аккаунт? <button class="btn ghost sm" onclick="startConnect()">Подключить заново</button></p>
-{% else %}
-  <div class="card">
-    <h3 style="font-size:17px;margin-bottom:8px">Подключение по QR-коду</h3>
-    <p class="muted" style="margin-bottom:16px">Официальный Telegram API (MTProto). Пароль не сохраняется, отключиться можно в приложении Telegram в любой момент.</p>
-    <div id="start"><button class="btn" onclick="startConnect()">📱 Подключить аккаунт</button></div>
-  </div>
+  <p class="muted">Нужно подключить другой аккаунт? <button class="btn ghost sm" onclick="show('connectUI')">Подключить заново</button></p>
 {% endif %}
 
-<div id="qrzone" class="card" style="display:none;margin-top:18px">
-  <div class="qrbox">
-    <img id="qrimg" class="qr" alt="QR" src="">
-    <div>
-      <h3 style="font-size:16px;margin-bottom:8px">Отсканируйте QR в Telegram</h3>
-      <ol class="muted" style="padding-left:18px;line-height:1.9">
-        <li>Telegram → Настройки → <b>Устройства</b></li>
-        <li>«Подключить устройство»</li>
-        <li>Наведите камеру на QR-код</li>
-      </ol>
-      <div id="cstatus" class="muted" style="margin-top:8px">Ожидание сканирования…</div>
-      <div id="pwbox" style="display:none;margin-top:12px">
-        <label>Пароль 2FA (если включён)</label>
-        <input type="password" id="pw" style="max-width:260px">
-        <button class="btn sm" onclick="submitPw()">Подтвердить</button>
+<div id="connectUI" {% if connected %}style="display:none"{% endif %}>
+  <div class="card">
+    <h3 style="font-size:17px;margin-bottom:8px">Подключение Telegram</h3>
+    <p class="muted" style="margin-bottom:14px">Официальный Telegram API (MTProto). Пароль от Telegram не сохраняется, отключиться можно в приложении в любой момент. Используйте <b>запасной</b> аккаунт, не основной.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" onclick="showQr()">📷 По QR-коду</button>
+      <button class="btn ghost" onclick="showPhone()">📱 По номеру телефона</button>
+    </div>
+  </div>
+
+  <!-- QR -->
+  <div id="qrzone" class="card" style="display:none;margin-top:14px">
+    <div class="qrbox">
+      <img id="qrimg" class="qr" alt="QR" src="">
+      <div>
+        <h3 style="font-size:16px;margin-bottom:8px">Отсканируйте QR в Telegram</h3>
+        <ol class="muted" style="padding-left:18px;line-height:1.9">
+          <li>Telegram → Настройки → <b>Устройства</b></li>
+          <li>«Подключить устройство»</li>
+          <li>Наведите камеру на QR-код</li>
+        </ol>
+        <div id="qrStatus" class="muted" style="margin-top:8px">Ожидание сканирования…</div>
+        <div id="qrPwBox" style="display:none;margin-top:12px">
+          <label>Облачный пароль (если установлен в Telegram)</label>
+          <input type="password" id="qrPw" style="max-width:260px">
+          <button class="btn sm" onclick="qrPassword()">Подтвердить</button>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- PHONE -->
+  <div id="phonezone" class="card" style="display:none;margin-top:14px">
+    <h3 style="font-size:16px;margin-bottom:8px">Вход по номеру телефона</h3>
+    <div id="phoneStep">
+      <label style="margin-top:0">Номер телефона (в формате +7…)</label>
+      <input type="tel" id="phoneInput" placeholder="+79991234567" style="max-width:260px">
+      <button class="btn sm" onclick="sendPhone()">Отправить код</button>
+    </div>
+    <div id="codeStep" style="display:none;margin-top:12px">
+      <label style="margin-top:0">Код из Telegram</label>
+      <input type="text" id="codeInput" inputmode="numeric" placeholder="12345" style="max-width:200px">
+      <button class="btn sm" onclick="sendCode()">Подтвердить</button>
+    </div>
+    <div id="cloudStep" style="display:none;margin-top:12px">
+      <label style="margin-top:0">Облачный пароль Telegram</label>
+      <input type="password" id="cloudInput" style="max-width:260px">
+      <button class="btn sm" onclick="sendCloud()">Подтвердить</button>
+    </div>
+    <div id="phoneStatus" class="muted" style="margin-top:10px"></div>
+  </div>
 </div>
 {% endblock %}
+
 {% block app_script %}
 <script>
-let poll=null;
-async function startConnect(){
-  document.getElementById('qrzone').style.display='block';
-  setStatus('Готовим QR…');
-  const r=await fetch('/app/connect/start',{method:'POST'});
-  const d=await r.json();
-  if(d.error){setStatus('⚠ '+d.error);return;}
+let qrPoll=null;
+function show(id){document.getElementById(id).style.display='block';}
+function hide(id){document.getElementById(id).style.display='none';}
+function setStatus(id,t){document.getElementById(id).textContent=t;}
+async function finish(){ await fetch('/app/connect/status'); location.reload(); }
+
+// ── QR ──
+function showQr(){ hide('phonezone'); show('qrzone'); startQr(); }
+async function startQr(){
+  setStatus('qrStatus','Готовим QR…');
+  const d=await (await fetch('/app/connect/start',{method:'POST'})).json();
+  if(d.error){setStatus('qrStatus','⚠ '+d.error);return;}
   if(d.qr_img) document.getElementById('qrimg').src=d.qr_img;
-  if(poll) clearInterval(poll);
-  poll=setInterval(checkStatus,2500);
+  if(qrPoll) clearInterval(qrPoll);
+  qrPoll=setInterval(checkQr,2500);
 }
-async function checkStatus(){
-  const r=await fetch('/app/connect/status');const d=await r.json();
+async function checkQr(){
+  const d=await (await fetch('/app/connect/status')).json();
   if(d.qr_img) document.getElementById('qrimg').src=d.qr_img;
-  if(d.status==='connected'){clearInterval(poll);setStatus('✅ Подключено! Обновляем…');setTimeout(()=>location.reload(),900);}
-  else if(d.status==='password_required'){document.getElementById('pwbox').style.display='block';setStatus('Введите пароль 2FA');}
-  else if(d.status==='error'){clearInterval(poll);setStatus('⚠ '+(d.error||'ошибка, начните заново'));}
-  else setStatus('Ожидание сканирования…');
+  if(d.status==='connected'){clearInterval(qrPoll);setStatus('qrStatus','✅ Подключено!');setTimeout(finish,500);}
+  else if(d.status==='password_required'){show('qrPwBox');setStatus('qrStatus','Введите облачный пароль');}
+  else if(d.status==='error'){clearInterval(qrPoll);setStatus('qrStatus','⚠ '+(d.error||'ошибка, начните заново'));}
 }
-async function submitPw(){
-  const pw=document.getElementById('pw').value;
-  const fd=new FormData();fd.append('password',pw);
-  const r=await fetch('/app/connect/password',{method:'POST',body:fd});
-  const d=await r.json();
-  if(d.status==='connected'){setStatus('✅ Подключено!');setTimeout(()=>location.reload(),900);}
-  else if(d.error) setStatus('⚠ '+d.error);
+async function qrPassword(){
+  const fd=new FormData(); fd.append('password',document.getElementById('qrPw').value);
+  const d=await (await fetch('/app/connect/password',{method:'POST',body:fd})).json();
+  if(d.status==='connected'){ finish(); } else if(d.error){ setStatus('qrStatus','⚠ '+d.error); }
 }
-function setStatus(t){document.getElementById('cstatus').textContent=t;}
+
+// ── PHONE ──
+function showPhone(){ if(qrPoll) clearInterval(qrPoll); hide('qrzone'); show('phonezone'); }
+async function sendPhone(){
+  const phone=document.getElementById('phoneInput').value.trim();
+  if(!phone){setStatus('phoneStatus','Введите номер');return;}
+  setStatus('phoneStatus','Отправляю код…');
+  const fd=new FormData(); fd.append('phone',phone);
+  const d=await (await fetch('/app/connect/phone/start',{method:'POST',body:fd})).json();
+  if(d.status==='code_required'){ show('codeStep'); setStatus('phoneStatus','Код отправлен в Telegram — введите его'); }
+  else setStatus('phoneStatus','⚠ '+(d.error||'не удалось отправить код'));
+}
+async function sendCode(){
+  const code=document.getElementById('codeInput').value.trim();
+  setStatus('phoneStatus','Проверяю код…');
+  const fd=new FormData(); fd.append('code',code);
+  const d=await (await fetch('/app/connect/phone/code',{method:'POST',body:fd})).json();
+  if(d.status==='connected'){ setStatus('phoneStatus','✅ Подключено!'); finish(); }
+  else if(d.status==='password_required'){ show('cloudStep'); setStatus('phoneStatus','Аккаунт защищён облачным паролем — введите его'); }
+  else setStatus('phoneStatus','⚠ '+(d.error||'неверный код'));
+}
+async function sendCloud(){
+  const fd=new FormData(); fd.append('password',document.getElementById('cloudInput').value);
+  const d=await (await fetch('/app/connect/password',{method:'POST',body:fd})).json();
+  if(d.status==='connected'){ setStatus('phoneStatus','✅ Подключено!'); finish(); }
+  else setStatus('phoneStatus','⚠ '+(d.error||'неверный облачный пароль'));
+}
 </script>
 {% endblock %}

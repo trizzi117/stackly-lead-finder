@@ -35,6 +35,8 @@ class ConnectSession:
         self.tg_user_id: int | None = None
         self.username: str | None = None
         self.phone: str | None = None
+        self.phone_code_hash: str | None = None
+        self.entered_phone: str | None = None
         self._task: asyncio.Task | None = None
 
 
@@ -117,7 +119,48 @@ async def submit_password(user_id: int, password: str) -> ConnectSession | None:
         await _finish(cs)
     except Exception as exc:  # noqa: BLE001
         cs.status = "error"
-        cs.error = f"неверный пароль 2FA: {exc}"
+        cs.error = f"неверный облачный пароль: {exc}"
+    return cs
+
+
+async def start_phone(user_id: int, phone: str) -> ConnectSession:
+    old = manager.get(user_id)
+    if old and old.client:
+        try:
+            await old.client.disconnect()
+        except Exception:  # noqa: BLE001
+            pass
+    cs = ConnectSession(user_id)
+    cs.entered_phone = phone
+    manager[user_id] = cs
+    if not API_ID or not API_HASH:
+        cs.status = "error"
+        cs.error = "На сервере не заданы TG_API_ID / TG_API_HASH (.env)"
+        return cs
+    try:
+        cs.client = TelegramClient(StringSession(), API_ID, API_HASH)
+        await cs.client.connect()
+        sent = await cs.client.send_code_request(phone)
+        cs.phone_code_hash = sent.phone_code_hash
+        cs.status = "code_required"
+    except Exception as exc:  # noqa: BLE001
+        cs.status = "error"
+        cs.error = f"не удалось отправить код: {exc}"
+    return cs
+
+
+async def submit_code(user_id: int, code: str) -> ConnectSession | None:
+    cs = manager.get(user_id)
+    if not cs or not cs.client or cs.status != "code_required":
+        return cs
+    try:
+        await cs.client.sign_in(phone=cs.entered_phone, code=code, phone_code_hash=cs.phone_code_hash)
+        await _finish(cs)
+    except SessionPasswordNeededError:
+        cs.status = "password_required"
+    except Exception as exc:  # noqa: BLE001
+        cs.status = "error"
+        cs.error = f"неверный код: {exc}"
     return cs
 
 

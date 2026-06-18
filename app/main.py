@@ -326,6 +326,24 @@ async def connect_password(request: Request, password: str = Form(...), db: Sess
     return JSONResponse({"status": cs.status if cs else "idle", "error": cs.error if cs else ""})
 
 
+@app.post("/app/connect/phone/start")
+async def connect_phone_start(request: Request, phone: str = Form(...), db: Session = Depends(get_db)):
+    user = get_user(request, db)
+    if not user:
+        return JSONResponse({"status": "error", "error": "auth"}, status_code=401)
+    cs = await tg_connect.start_phone(user.id, phone.strip())
+    return JSONResponse({"status": cs.status, "error": cs.error})
+
+
+@app.post("/app/connect/phone/code")
+async def connect_phone_code(request: Request, code: str = Form(...), db: Session = Depends(get_db)):
+    user = get_user(request, db)
+    if not user:
+        return JSONResponse({"status": "error"}, status_code=401)
+    cs = await tg_connect.submit_code(user.id, code.strip())
+    return JSONResponse({"status": cs.status if cs else "idle", "error": cs.error if cs else ""})
+
+
 async def _sync_chats(user: User, db: Session) -> int:
     acc = user.tg_account
     if not acc or not acc.session_string:
