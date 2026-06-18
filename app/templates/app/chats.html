@@ -102,30 +102,40 @@ function applyFilters(){
   const nm=document.getElementById('noMatch');
   if(nm) nm.style.display=shown?'none':'block';
 }
+let similarResults=[];
 async function findSimilar(chatId, btn){
   const panel=document.getElementById('similarPanel');
   panel.style.display='block';
-  panel.innerHTML='<div class="muted">✨ ИИ подбирает похожие чаты…</div>';
+  panel.innerHTML='<div class="muted">✨ Ищу похожие группы…</div>';
   panel.scrollIntoView({behavior:'smooth',block:'nearest'});
   try{
     const r=await fetch(`/app/chats/${chatId}/similar`,{method:'POST'});
     const d=await r.json();
-    if(!d.ok){ panel.innerHTML=`<b>Найти похожие</b><p class="muted" style="margin-top:6px">${d.message||'Не удалось.'}</p>`; return; }
-    let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><b>Похожие на «${d.source}»</b><button class="btn ghost sm" style="margin-left:auto" onclick="document.getElementById('similarPanel').style.display='none'">Скрыть</button></div>`;
-    html+='<div class="bars">';
-    (d.items||[]).forEach(it=>{
-      const rel=Math.max(0,Math.min(100,it.relevance||0));
-      html+=`<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:10px"><b>${esc(it.name||'')}</b>
-          <span class="track" style="flex:1;max-width:160px"><span class="fill" style="width:${rel}%"></span></span>
-          <span class="muted" style="font-size:12px">${rel}/100</span></div>
-        <div class="muted" style="font-size:13px;margin-top:4px">${esc(it.why||'')}</div>
-        ${it.query?`<div style="font-size:12.5px;margin-top:4px">🔎 искать в Telegram: <b>${esc(it.query)}</b></div>`:''}
-      </div>`;
-    });
-    html+='</div>';
+    if(!d.ok){ panel.innerHTML=`<b>Похожие</b><p class="muted" style="margin-top:6px">${d.message||'Не удалось.'}</p>`; return; }
+    similarResults=d.results||[];
+    if(!similarResults.length){ panel.innerHTML=`<b>Похожие на «${esc(d.source)}»</b><p class="muted" style="margin-top:6px">Новых похожих групп не нашлось.</p>`; return; }
+    let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap"><b>Похожие группы на «${esc(d.source)}»</b>
+      <button class="btn sm" style="margin-left:auto" onclick="applySimilar(this)">Добавить выбранные в мониторинг</button>
+      <button class="btn ghost sm" onclick="document.getElementById('similarPanel').style.display='none'">Скрыть</button></div>`;
+    html+=similarResults.map((r,i)=>{
+      const ppl=r.participants!=null?`👥 ${r.participants.toLocaleString('ru-RU')}`:'';
+      const uname=r.username?`@${esc(r.username)}`:'<span class="muted">приватная</span>';
+      return `<label class="disco-card"><input type="checkbox" data-i="${i}" style="width:auto">
+        <span style="flex:1"><b>${esc(r.title)}</b> <span class="pill">группа</span>
+        <div class="muted" style="font-size:13px">${uname} ${ppl}</div></span></label>`;
+    }).join('');
     panel.innerHTML=html;
   }catch(e){ panel.innerHTML='<p class="muted">Ошибка запроса. Попробуйте ещё раз.</p>'; }
+}
+async function applySimilar(btn){
+  const items=[...document.querySelectorAll('#similarPanel input:checked')].map(c=>similarResults[+c.dataset.i]);
+  if(!items.length){alert('Отметьте группы галочками');return;}
+  if(!confirm(`Вступить и начать мониторить ${items.length} групп(ы)? Вступление идёт медленно — не закрывайте вкладку.`))return;
+  btn.disabled=true; btn.textContent='Добавляю…';
+  const r=await fetch('/app/discovery/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})});
+  const d=await r.json();
+  if(!d.ok){alert(d.message||'Ошибка');btn.disabled=false;btn.textContent='Добавить выбранные в мониторинг';return;}
+  alert(`Готово: добавлено и активировано ${d.added}.`); window.location='/app/chats';
 }
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 </script>

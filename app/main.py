@@ -475,24 +475,33 @@ async def chat_similar(chat_id: int, request: Request, db: Session = Depends(get
     chat = db.query(MonitoredChat).filter(MonitoredChat.id == chat_id, MonitoredChat.user_id == user.id).first()
     if not chat:
         return JSONResponse({"ok": False, "message": "Чат не найден"})
-    api_key = os.getenv("LLM_API_KEY", "")
-    if not api_key:
-        return JSONResponse({"ok": False, "message": "Добавьте LLM-ключ в .env — тогда ИИ подберёт похожие чаты."})
-
-    llm = LLM(os.getenv("LLM_BASE_URL", "https://api.deepseek.com"), api_key,
-              os.getenv("LLM_MODEL", "deepseek-chat"))
-    system = ('Ты помогаешь найти Telegram-сообщества для поиска B2B-клиентов. Верни СТРОГО JSON: '
-              '{"items":[{"name":"короткое имя сообщества","why":"почему релевантно","relevance":0-100,'
-              '"query":"строка для поиска в Telegram"}]} — ровно 6 элементов, по убыванию relevance.')
-    user_msg = (f"Бизнес: {user.business_context or 'услуги для малого бизнеса в РФ'}\n"
-                f"Найди похожие на чат «{chat.title}»: публичные группы/каналы, где сидят потенциальные клиенты.")
+    client = await _open_user_client(user)
+    if not client:
+        return JSONResponse({"ok": False, "message": "Сначала подключите Telegram-аккаунт."})
+    queries = [chat.title] if chat.title else []
+    llm = _llm_or_none()
+    if llm:
+        try:
+            data = _parse_json(await llm.complete(
+                'Верни СТРОГО JSON {"queries":[5 коротких поисковых запросов для Telegram-ГРУПП, '
+                'похожих по теме на этот чат и подходящих бизнесу]}.',
+                f"Чат: {chat.title}\nБизнес: {user.business_context or 'услуги для малого бизнеса'}",
+                json_mode=True))
+            queries += [str(q).strip() for q in data.get("queries", []) if str(q).strip()][:5]
+        except Exception:  # noqa: BLE001
+            pass
+    if not queries:
+        await client.disconnect()
+        return JSONResponse({"ok": False, "message": "Не удалось собрать запрос для поиска."})
     try:
-        raw = await llm.complete(system, user_msg, json_mode=True)
-        data = json.loads(raw) if raw.strip().startswith("{") else json.loads(re.search(r"\{.*\}", raw, re.S).group(0))
-        items = data.get("items", [])[:8]
-    except Exception as exc:  # noqa: BLE001
-        return JSONResponse({"ok": False, "message": f"ИИ не ответил, попробуйте ещё раз. ({exc})"})
-    return JSONResponse({"ok": True, "source": chat.title, "items": items})
+        results = await _search_tg(client, queries)
+    finally:
+        await client.disconnect()
+    # убираем то, что уже в списке мониторинга
+    existing = {row.chat_id for row in
+                db.query(MonitoredChat.chat_id).filter(MonitoredChat.user_id == user.id).all()}
+    results = [r for r in results if r["chat_id"] not in existing]
+    return JSONResponse({"ok": True, "source": chat.title, "results": results})
 
 
 # ── Поиск каналов (discovery): простой + ИИ-поиск ───────────────────────
