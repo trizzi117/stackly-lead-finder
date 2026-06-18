@@ -133,17 +133,17 @@ async def build_runner(user_id: int) -> Runner | None:
             kw = prefilter.match(text)
             if not kw:
                 return
+            sender = await event.get_sender()
+            if not isinstance(sender, TgUser):
+                return  # пост от канала/анонима, не от живого человека — пропускаем
             if runner.cap and runner.month_count >= runner.cap:
                 return
             chat = await event.get_chat()
             title = getattr(chat, "title", None) or getattr(chat, "username", None) or "—"
             result = await classifier.classify(text, title)
-            sender = await event.get_sender()
-            uname, sid, sname = None, None, "—"
-            if isinstance(sender, TgUser):
-                sid = sender.id
-                uname = sender.username
-                sname = " ".join(p for p in [sender.first_name, sender.last_name] if p) or (uname or "—")
+            sid = sender.id
+            uname = sender.username
+            sname = " ".join(p for p in [sender.first_name, sender.last_name] if p) or (uname or "—")
             link = (f"https://t.me/{chat.username}/{event.id}"
                     if isinstance(chat, Channel) and getattr(chat, "username", None)
                     else (f"https://t.me/{uname}" if uname else None))

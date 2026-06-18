@@ -189,3 +189,31 @@ table.data tr:last-child td{border-bottom:none}
 .relev{width:38px;height:38px;border-radius:50%;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .disco-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;background:#fff;cursor:pointer}
 .disco-card:hover{border-color:var(--brand)}
+
+/* ── мобильная версия ── */
+@media(max-width:600px){
+  .content{padding:16px 13px}
+  .topbar{padding:12px 14px}
+  .topbar h1{font-size:17px}
+  .topbar .right{gap:6px}
+  .hero{padding:54px 0 40px}
+  .hero h1{font-size:30px}
+  .hero p{font-size:16px}
+  h2.center{font-size:25px}
+  section{padding:46px 0}
+  .cards{grid-template-columns:1fr 1fr;gap:8px}
+  .stat .n{font-size:21px}
+  .lead{padding:13px}
+  .lhead{gap:7px}
+  .when{margin-left:0;width:100%;margin-top:2px}
+  /* таблицы — горизонтальный скролл вместо вылезания за экран */
+  table.data,table.cmp{display:block;overflow-x:auto;white-space:nowrap;font-size:13px}
+  table.data th,table.data td{padding:9px 10px}
+  .side{width:54px}
+  .nav .cta .btn{padding:9px 14px}
+  /* 16px у полей ввода — чтобы iOS не зумил при фокусе */
+  input,select,textarea{font-size:16px}
+  .final{padding:40px 18px}
+  .final h2{font-size:23px}
+  .guidegrid{grid-template-columns:1fr}
+}

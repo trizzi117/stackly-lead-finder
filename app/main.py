@@ -27,7 +27,7 @@ from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.contacts import SearchRequest as TgSearchRequest
-from telethon.tl.types import Channel, Chat
+from telethon.tl.types import Channel, Chat, User as TgUser
 from telethon.utils import get_peer_id
 
 from . import billing, platform_bot, tg_connect
@@ -43,7 +43,8 @@ templates = Jinja2Templates(directory=str(BASE / "templates"))
 templates.env.globals["METRIKA_ID"] = os.getenv("METRIKA_ID", "").strip()
 
 app = FastAPI(title="Stackly Lead Finder")
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "dev-secret-change-me"))
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "dev-secret-change-me"),
+                   max_age=60 * 60 * 24 * 30, same_site="lax")  # вход держится 30 дней на устройстве
 app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
 
@@ -448,23 +449,24 @@ async def scan_history(request: Request, limit: int = Form(300), db: Session = D
                     kw = prefilter.match(text)
                     if not kw:
                         continue
-                    if ai_calls >= AI_CAP:
-                        break
-                    result = await classifier.classify(text, chat.title)
-                    ai_calls += 1
                     sender = None
                     try:
                         sender = await msg.get_sender()
                     except Exception:  # noqa: BLE001
                         pass
-                    uname = getattr(sender, "username", None)
-                    sname = " ".join(p for p in [getattr(sender, "first_name", None),
-                                                 getattr(sender, "last_name", None)] if p) or (uname or "—")
+                    if not isinstance(sender, TgUser):
+                        continue  # сообщение не от живого человека (канал/аноним) — пропускаем
+                    if ai_calls >= AI_CAP:
+                        break
+                    result = await classifier.classify(text, chat.title)
+                    ai_calls += 1
+                    uname = sender.username
+                    sname = " ".join(p for p in [sender.first_name, sender.last_name] if p) or (uname or "—")
                     link = (f"https://t.me/{chat.username}/{msg.id}" if chat.username
                             else (f"https://t.me/{uname}" if uname else None))
                     try:
                         db.add(Lead(user_id=user.id, created_at=utcnow(), chat_id=chat.chat_id,
-                                    chat_title=chat.title, message_id=msg.id, sender_id=msg.sender_id,
+                                    chat_title=chat.title, message_id=msg.id, sender_id=sender.id,
                                     sender_name=sname, username=uname, text=text, keyword=kw,
                                     classification=result.classification, score=result.score,
                                     intent=result.intent, reply=result.reply, status="new", link=link))
@@ -545,10 +547,10 @@ def _chat_dict(ch) -> dict:
     }
 
 
-async def _search_tg(client, queries: list[str], limit: int = 20) -> list[dict]:
+async def _search_tg(client, queries: list[str], limit: int = 50, min_members: int = 20) -> list[dict]:
     seen: set[int] = set()
     out: list[dict] = []
-    for q in [x.strip() for x in queries if x.strip()][:6]:
+    for q in [x.strip() for x in queries if x.strip()][:8]:
         try:
             res = await client(TgSearchRequest(q=q, limit=limit))
         except Exception:  # noqa: BLE001
@@ -562,8 +564,12 @@ async def _search_tg(client, queries: list[str], limit: int = 20) -> list[dict]:
             cid = get_peer_id(ch)
             if cid in seen:
                 continue
+            members = getattr(ch, "participants_count", None)
+            if members is not None and members < min_members:
+                continue  # почти пустая группа — пропускаем
             seen.add(cid)
             out.append(_chat_dict(ch))
+    out.sort(key=lambda r: (r.get("participants") or 0), reverse=True)  # крупные/живые выше
     return out
 
 
